@@ -1,0 +1,63 @@
+# =========================
+# Node dependencies
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Build & runtime output
+# =========================
+dist/
+build/
+coverage/
+logs/
+*.log
+
+# =========================
+# Prisma
+# =========================
+prisma/dev.db
+prisma/dev.db-journal
+prisma/*.db
+prisma/*.db-journal
+node_modules/.prisma/
+
+# =========================
+# Uploads & generated files
+# =========================
+uploads/
+tmp/
+temp/
+
+# =========================
+# Test artifacts
+# =========================
+coverage/
+.nyc_output/
+
+# =========================
+# OS / Editor junk
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# =========================
+# Optional: lock files (choose ONE package manager)
+# =========================
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
