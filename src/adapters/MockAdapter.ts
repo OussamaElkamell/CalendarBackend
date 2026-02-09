@@ -48,34 +48,7 @@ export class MockAdapter implements IAdapter {
                 url: '/details/item-6',
                 availability: this.generateAvailability(dates, 180)
             },
-            {
-                id: 'item-7',
-                name: 'Countryside Farmhouse',
-                image: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=800',
-                url: '/details/item-7',
-                availability: this.generateAvailability(dates, 110)
-            },
-            {
-                id: 'item-8',
-                name: 'Modern Loft',
-                image: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=800',
-                url: '/details/item-8',
-                availability: this.generateAvailability(dates, 160)
-            },
-            {
-                id: 'item-9',
-                name: 'Forest Treehouse',
-                image: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=800',
-                url: '/details/item-9',
-                availability: this.generateAvailability(dates, 140)
-            },
-            {
-                id: 'item-10',
-                name: 'Historic Riad',
-                image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800',
-                url: '/details/item-10',
-                availability: this.generateAvailability(dates, 200)
-            }
+
         ];
 
         return {
