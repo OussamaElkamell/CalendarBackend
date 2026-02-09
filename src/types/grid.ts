@@ -10,6 +10,7 @@ export interface GridItem {
   id: string;
   name: string;
   image?: string;
+  url?: string;
   availability: Record<string, DayAvailability>; // Key is ISO date string YYYY-MM-DD
 }
 

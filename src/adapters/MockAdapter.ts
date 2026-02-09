@@ -5,25 +5,27 @@ export class MockAdapter implements IAdapter {
     async fetchAvailability(startDate: string, endDate: string, config: AdapterConfig): Promise<GridResponse> {
         const dates = this.generateDateRange(startDate, endDate);
 
-        const items: GridItem[] = [
-            {
-                id: 'item-1',
+        {
+            id: 'item-1',
                 name: 'Luxury Villa',
-                image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800',
-                availability: this.generateAvailability(dates, 250)
-            },
-            {
-                id: 'item-2',
+                    image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800',
+                        url: 'https://example.com/details/luxury-villa',
+                            availability: this.generateAvailability(dates, 250)
+        },
+        {
+            id: 'item-2',
                 name: 'Mountain Cabin',
-                image: 'https://images.unsplash.com/photo-1464146072230-91cabc968266?auto=format&fit=crop&w=800',
-                availability: this.generateAvailability(dates, 150)
-            },
-            {
-                id: 'item-3',
+                    image: 'https://images.unsplash.com/photo-1464146072230-91cabc968266?auto=format&fit=crop&w=800',
+                        url: 'https://example.com/details/mountain-cabin',
+                            availability: this.generateAvailability(dates, 150)
+        },
+        {
+            id: 'item-3',
                 name: 'Beachfront Studio',
-                image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800',
-                availability: this.generateAvailability(dates, 120)
-            }
+                    image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800',
+                        url: 'https://example.com/details/beachfront-studio',
+                            availability: this.generateAvailability(dates, 120)
+        }
         ];
 
         return {
