@@ -26,6 +26,55 @@ export class MockAdapter implements IAdapter {
                 image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800',
                 url: '/details/item-3',
                 availability: this.generateAvailability(dates, 120)
+            },
+            {
+                id: 'item-4',
+                name: 'City Penthouse',
+                image: 'https://images.unsplash.com/photo-1502673530728-f79b4cab31b1?auto=format&fit=crop&w=800',
+                url: '/details/item-4',
+                availability: this.generateAvailability(dates, 300)
+            },
+            {
+                id: 'item-5',
+                name: 'Desert Eco Lodge',
+                image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800',
+                url: '/details/item-5',
+                availability: this.generateAvailability(dates, 90)
+            },
+            {
+                id: 'item-6',
+                name: 'Lake House Retreat',
+                image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=800',
+                url: '/details/item-6',
+                availability: this.generateAvailability(dates, 180)
+            },
+            {
+                id: 'item-7',
+                name: 'Countryside Farmhouse',
+                image: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=800',
+                url: '/details/item-7',
+                availability: this.generateAvailability(dates, 110)
+            },
+            {
+                id: 'item-8',
+                name: 'Modern Loft',
+                image: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=800',
+                url: '/details/item-8',
+                availability: this.generateAvailability(dates, 160)
+            },
+            {
+                id: 'item-9',
+                name: 'Forest Treehouse',
+                image: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=800',
+                url: '/details/item-9',
+                availability: this.generateAvailability(dates, 140)
+            },
+            {
+                id: 'item-10',
+                name: 'Historic Riad',
+                image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800',
+                url: '/details/item-10',
+                availability: this.generateAvailability(dates, 200)
             }
         ];
 
