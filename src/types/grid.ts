@@ -24,8 +24,10 @@ export interface GridResponse {
   };
 }
 
+import type { Provider } from "./providers.js";
+
 export interface AdapterConfig {
   tenantId: string;
-  provider: string;
+  provider: Provider;
   settings: Record<string, any>;
 }
