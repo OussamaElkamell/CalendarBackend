@@ -13,7 +13,7 @@ const ALIASES = {
     price: ['price', 'amount', 'cost', 'rate', 'value'],
     startDate: ['startDate', 'start', 'from', 'reservationDate', 'checkIn'],
     endDate: ['endDate', 'end', 'to', 'checkOut'],
-    unitId: ['unitId', 'resourceId', 'itemId', 'carId', 'refId'],
+    unitId: ['unitId', 'resourceId', 'itemId', 'carId', 'refId', 'carModel', 'itemModel'],
     status: ['status', 'state', 'availability', 'confirmed']
 };
 
@@ -52,8 +52,8 @@ export class WixVeloAdapter implements IAdapter {
         const {
             source,
             wix_fn = "calendar_data",
-            units_path = config.settings.units_path || config.settings.units || "units",
-            bookings_path = config.settings.bookings_path || config.settings.bookings || "bookings",
+            units_path,
+            bookings_path,
             unit_id,
             unit_name,
             unit_image,
@@ -85,11 +85,20 @@ export class WixVeloAdapter implements IAdapter {
             });
 
             const data = response.data;
-            const rawUnits = getDeepValue(data, units_path) || (Array.isArray(data) ? data : []);
-            const globalBookings = getDeepValue(data, bookings_path) || [];
+
+            // Smart extraction: Try explicit path, then standard keys, then array fallback
+            let rawUnits = getDeepValue(data, units_path);
+            if (!Array.isArray(rawUnits)) {
+                rawUnits = data.units || data.items || data.data || (Array.isArray(data) ? data : []);
+            }
+
+            let globalBookings = getDeepValue(data, bookings_path);
+            if (!Array.isArray(globalBookings)) {
+                globalBookings = data.bookings || [];
+            }
 
             if (!Array.isArray(rawUnits)) {
-                throw new Error(`Units not found at path: ${units_path}. Verify your mapping.`);
+                throw new Error("Could not find units array in response. Check mapping or response structure.");
             }
 
             const dates = this.generateDateRange(startDate, endDate);
