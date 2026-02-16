@@ -1,1 +1,1 @@
-export type Provider = "wix" | "bookable" | "wordpress" | "custom" | "mock";
+export type Provider = "wix" | "bookable" | "wordpress" | "custom" | "mock" | "generic";

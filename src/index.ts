@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 
 import { getAdapter } from "./adapters/registry.js";
 import { getTenantConfig } from "./tenants/store.js";
+import type { AdapterConfig } from './types/grid.js';
 
 dotenv.config();
 
@@ -19,33 +20,34 @@ app.use(express.json());
 app.get("/api/v1/availability", async (req, res) => {
     try {
         // Support both 'tenantId' and 'tenant' query params for backwards compatibility
-        const tenantId = String(req.query.tenantId ?? req.query.tenant ?? "");
-        const start = String(req.query.start ?? "");
-        const end = String(req.query.end ?? "");
+        const { start, end, provider, ...mapping } = req.query as any;
 
-        if (!tenantId || !start || !end) {
-            res.status(400).json({
-                error: "Missing required parameters: tenantId (or tenant), start, end"
-            });
-            return;
+        if (!start || !end) {
+            return res.status(400).json({ error: 'Missing start or end date (YYYY-MM-DD)' });
         }
 
-        // 1. Get the dynamic configuration for this tenant
-        const config = getTenantConfig(tenantId);
+        let config: AdapterConfig;
 
-        // 2. Resolve the correct adapter singleton
+        if (provider) {
+            // "Zero-Config" Mode: Config is built on-the-fly from URL parameters
+            config = {
+                tenantId: mapping.tenantId || mapping.tenant || 'dynamic',
+                provider: provider as any,
+                settings: mapping
+            };
+        } else {
+            // Standard Mode: Config is retrieved from the centralized tenant store
+            const tenantId = mapping.tenantId || mapping.tenant || 'demo';
+            config = getTenantConfig(tenantId);
+        }
+
         const adapter = getAdapter(config.provider);
-
-        // 3. Delegate data fetching to the adapter
         const data = await adapter.fetchAvailability(start, end, config);
 
         res.json(data);
-    } catch (error: any) {
-        console.error("Error fetching availability:", error);
-
-        // Return appropriate status codes
-        const status = error.message?.includes("Tenant not found") ? 404 : 500;
-        res.status(status).json({ error: error.message || "Internal Server Error" });
+    } catch (err: any) {
+        console.error(`[API Error] ${req.path}:`, err.message);
+        res.status(500).json({ error: err.message });
     }
 });
 

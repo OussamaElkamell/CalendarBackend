@@ -1,6 +1,7 @@
 import type { IAdapter } from "./IAdapter.js";
 import { MockAdapter } from "./MockAdapter.js";
 import { PassThroughAdapter } from "./PassThroughAdapter.js";
+import { WixVeloAdapter } from "./WixVeloAdapter.js";
 
 // Stubs for providers that are not yet fully implemented
 class NotImplementedAdapter implements IAdapter {
@@ -12,7 +13,8 @@ class NotImplementedAdapter implements IAdapter {
 // Maintain singletons of adapters to avoid re-instantiation per request
 export const adapterRegistry: Record<string, IAdapter> = {
     mock: new MockAdapter(),
-    wix: new NotImplementedAdapter(), // To be implemented with Wix Bookings API
+    wix: new WixVeloAdapter(), // Universal mapping adapter
+    generic: new WixVeloAdapter(), // Use for any other REST API
     bookable: new PassThroughAdapter(), // Recommend external endpoint
     wordpress: new PassThroughAdapter(), // Recommend external endpoint
     custom: new PassThroughAdapter(), // Recommend external endpoint
