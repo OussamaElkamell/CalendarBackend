@@ -12,6 +12,7 @@ export interface GridItem {
   image?: string;
   url?: string;
   availability: Record<string, DayAvailability>; // Key is ISO date string YYYY-MM-DD
+  metadata?: Record<string, any>;
 }
 
 export interface GridResponse {

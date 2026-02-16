@@ -1,11 +1,47 @@
 import type { IAdapter } from "./IAdapter.js";
-import type { GridResponse, AdapterConfig, GridItem } from "../types/grid.js";
+import type { GridResponse, AdapterConfig, GridItem, DayAvailability } from "../types/grid.js";
 import axios from "axios";
-import { getDeepValue, guessValue, ALIASES } from "../utils/PathUtils.js";
+
+/**
+ * Common field aliases for auto-discovery
+ */
+const ALIASES = {
+    id: ['id', '_id', 'uuid', 'pk', 'uId'],
+    name: ['name', 'title', 'label', 'display_name', 'fileName', 'carName'],
+    image: ['image', 'img', 'photo', 'thumbnail', 'pic', 'carImage'],
+    url: ['url', 'link', 'href', 'website'],
+    price: ['price', 'amount', 'cost', 'rate', 'value'],
+    startDate: ['startDate', 'start', 'from', 'reservationDate', 'checkIn'],
+    endDate: ['endDate', 'end', 'to', 'checkOut'],
+    unitId: ['unitId', 'resourceId', 'itemId', 'carId', 'refId'],
+    status: ['status', 'state', 'availability', 'confirmed']
+};
+
+/**
+ * Resolves a value from a nested object using dot notation.
+ */
+function getDeepValue(obj: any, path: string | undefined): any {
+    if (!obj || !path) return undefined;
+    if (!path.includes('.')) return obj[path];
+    return path.split('.').reduce((acc, part) => {
+        return acc && acc[part] !== undefined ? acc[part] : undefined;
+    }, obj);
+}
+
+/**
+ * Attempts to find a value for a key by looking for common aliases.
+ */
+function guessValue(obj: any, aliases: string[]): any {
+    if (!obj) return undefined;
+    for (const alias of aliases) {
+        if (obj[alias] !== undefined) return obj[alias];
+    }
+    return undefined;
+}
 
 /**
  * Universal Adapter for any REST API (Wix, custom, etc.)
- * It normalizes arbitrary JSON into GridResponse using flexible path-based mapping.
+ * it normalizes arbitrary JSON into GridResponse using flexible path-based mapping.
  */
 export class WixVeloAdapter implements IAdapter {
     async fetchAvailability(
@@ -16,10 +52,8 @@ export class WixVeloAdapter implements IAdapter {
         const {
             source,
             wix_fn = "calendar_data",
-            // Root Locators (Dot notation)
-            units_path = "units",
-            bookings_path = "bookings",
-            // Field Mappings (Dot notation)
+            units_path = config.settings.units_path || config.settings.units || "units",
+            bookings_path = config.settings.bookings_path || config.settings.bookings || "bookings",
             unit_id,
             unit_name,
             unit_image,
@@ -36,7 +70,6 @@ export class WixVeloAdapter implements IAdapter {
             throw new Error("Adapter requires 'source' parameter");
         }
 
-        // Standardized Wix URL as per Step 2, or direct use for "generic"
         const isWix = config.provider === 'wix';
         const url = isWix
             ? `${source.replace(/\/$/, "")}/_functions/${wix_fn}`
@@ -47,7 +80,7 @@ export class WixVeloAdapter implements IAdapter {
                 params: {
                     start: startDate,
                     end: endDate,
-                    ...config.settings // Pass through extra params (units coll name, etc)
+                    ...config.settings
                 }
             });
 
@@ -67,16 +100,15 @@ export class WixVeloAdapter implements IAdapter {
                     name: String(getDeepValue(unit, unit_name) || guessValue(unit, ALIASES.name) || "Unnamed"),
                     image: getDeepValue(unit, unit_image) || guessValue(unit, ALIASES.image),
                     url: getDeepValue(unit, unit_url) || guessValue(unit, ALIASES.url),
-                    availability: {}
+                    availability: {},
+                    metadata: unit
                 };
 
-                // Initialize availability
                 const basePrice = Number(getDeepValue(unit, unit_price) || guessValue(unit, ALIASES.price)) || 0;
                 dates.forEach(date => {
                     item.availability[date] = { status: 'available', price: basePrice };
                 });
 
-                // Resolve Bookings: check both global array and nested "unit.bookings"
                 const nestedBookings = getDeepValue(unit, bookings_path) || getDeepValue(unit, 'bookings');
                 const unitBookings = Array.isArray(nestedBookings)
                     ? nestedBookings
@@ -89,7 +121,6 @@ export class WixVeloAdapter implements IAdapter {
 
                     if (!startRaw) return;
 
-                    // Fallback for missing end date (1-day duration)
                     if (!endRaw) {
                         const sDate = new Date(startRaw);
                         const eDate = new Date(sDate);
@@ -104,7 +135,7 @@ export class WixVeloAdapter implements IAdapter {
                         dates.forEach(date => {
                             const current = new Date(date);
                             if (current >= bStart && current < bEnd && item.availability[date]) {
-                                item.availability[date]!.status = 'booked';
+                                (item.availability[date] as DayAvailability).status = 'booked';
                             }
                         });
                     }
@@ -125,7 +156,6 @@ export class WixVeloAdapter implements IAdapter {
         const start = new Date(startStr);
         const end = new Date(endStr);
         const dates: string[] = [];
-
         let current = new Date(start);
         while (current <= end) {
             const iso = current.toISOString().split('T')[0];
