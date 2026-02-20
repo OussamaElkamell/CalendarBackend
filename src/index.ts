@@ -54,7 +54,8 @@ app.get("/api/v1/availability", async (req, res) => {
 // Health check endpoint
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
-// Create a Booqable cart (draft order + book product) and return the cart URL
+// Create a Booqable storefront cart using their v1 cart API (same API as their embed JS snippet)
+// This returns cart.cart_url — the actual working checkout redirect URL
 app.post("/api/v1/createCart", async (req, res) => {
     try {
         const { source, apiKey, productId, startDate, endDate, storeUrl } = req.body;
@@ -65,65 +66,58 @@ app.post("/api/v1/createCart", async (req, res) => {
             });
         }
 
-        const baseUrl = (source as string).replace(/\/$/, '');
+        const storefront = (storeUrl || source as string).replace(/\/$/, '');
         const authHeader = { Authorization: `Bearer ${apiKey}` };
         const axios = (await import('axios')).default;
 
-        // Step 1: Create a draft order with the rental period
-        const orderRes = await axios.post(
-            `${baseUrl}/api/4/orders`,
+        // Step 1: Create a Booqable storefront cart
+        // This is the same endpoint used by booqable.js embed snippet (CARTS_FETCH action)
+        const cartRes = await axios.post(
+            `${storefront}/api/1/cart`,
+            { source: 'store' },
+            { headers: { ...authHeader, 'Content-Type': 'application/json' } }
+        );
+
+        const cart = cartRes.data?.cart;
+        const cartId: string = cart?.id;
+        if (!cartId) throw new Error('Failed to create Booqable storefront cart — no ID returned');
+        console.log('[createCart] Cart created:', cartId);
+
+        // Step 2: Set rental dates on the cart (mirrors CARTS_UPDATE action)
+        await axios.put(
+            `${storefront}/api/1/cart`,
             {
-                data: {
-                    type: 'orders',
-                    attributes: {
-                        starts_at: `${startDate}T10:00:00.000Z`,
-                        stops_at: `${endDate}T10:00:00.000Z`,
-                        status: 'new'
-                    }
-                }
+                id: cartId,
+                starts_at: `${startDate}T10:00:00.000Z`,
+                stops_at: `${endDate}T10:00:00.000Z`,
             },
             { headers: { ...authHeader, 'Content-Type': 'application/json' } }
         );
 
-        const orderId: string = orderRes.data?.data?.id;
-        if (!orderId) throw new Error('Failed to create Booqable order — no ID returned');
-
-        // Step 2: Book the product onto the order
-        await axios.post(
-            `${baseUrl}/api/4/order_fulfillments`,
+        // Step 3: Book the product into the cart (mirrors CARTS_BOOK action)
+        const bookRes = await axios.post(
+            `${storefront}/api/1/cart/book`,
             {
-                data: {
-                    type: 'order_fulfillments',
-                    attributes: {
-                        order_id: orderId,
-                        actions: [
-                            {
-                                action: 'book_product',
-                                mode: 'create_new',
-                                product_id: productId,
-                                quantity: 1
-                            }
-                        ]
-                    }
-                }
+                id: cartId,
+                item_id: productId,
+                quantity: 1,
             },
             { headers: { ...authHeader, 'Content-Type': 'application/json' } }
         );
 
+        // Step 4: Get the cart_url — Booqable's cart object includes a cart_url field
+        const bookedCart = bookRes.data?.cart;
+        const cartUrl: string = bookedCart?.cart_url
+            || cart?.cart_url
+            || `${storefront}/cart`;
 
-        const storefront = (storeUrl || source as string).replace(/\/$/, '');
-        const cartUrl = `${storefront}/orders/${orderId}`;
-        const orderAttrs = orderRes.data?.data?.attributes || {};
-
-        console.log('[createCart] Order created:', orderId);
-        console.log('[createCart] Cart URL:', cartUrl);
-        console.log('[createCart] Order status:', orderAttrs.status, '| starts_at:', orderAttrs.starts_at);
+        console.log('[createCart] Product booked. Cart URL:', cartUrl);
+        console.log('[createCart] Order ID:', bookedCart?.order_id);
 
         res.json({
             cartUrl,
-            orderId,
-            orderNumber: orderAttrs.number,
-            orderStatus: orderAttrs.status,
+            cartId,
+            orderId: bookedCart?.order_id,
         });
     } catch (err: any) {
         const detail = err.response?.data || err.message;
