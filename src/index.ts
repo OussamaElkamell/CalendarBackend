@@ -54,6 +54,74 @@ app.get("/api/v1/availability", async (req, res) => {
 // Health check endpoint
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
+// Create a Booqable cart (draft order + book product) and return the cart URL
+app.post("/api/v1/createCart", async (req, res) => {
+    try {
+        const { source, apiKey, productId, startDate, endDate, storeUrl } = req.body;
+
+        if (!source || !apiKey || !productId || !startDate || !endDate) {
+            return res.status(400).json({
+                error: 'Missing required fields: source, apiKey, productId, startDate, endDate'
+            });
+        }
+
+        const baseUrl = (source as string).replace(/\/$/, '');
+        const authHeader = { Authorization: `Bearer ${apiKey}` };
+        const axios = (await import('axios')).default;
+
+        // Step 1: Create a draft order with the rental period
+        const orderRes = await axios.post(
+            `${baseUrl}/api/4/orders`,
+            {
+                data: {
+                    type: 'orders',
+                    attributes: {
+                        starts_at: `${startDate}T10:00:00.000Z`,
+                        stops_at: `${endDate}T10:00:00.000Z`,
+                        status: 'new'
+                    }
+                }
+            },
+            { headers: { ...authHeader, 'Content-Type': 'application/json' } }
+        );
+
+        const orderId: string = orderRes.data?.data?.id;
+        if (!orderId) throw new Error('Failed to create Booqable order — no ID returned');
+
+        // Step 2: Book the product onto the order
+        await axios.post(
+            `${baseUrl}/api/4/order_fulfillments`,
+            {
+                data: {
+                    type: 'order_fulfillments',
+                    attributes: {
+                        order_id: orderId,
+                        actions: [
+                            {
+                                action: 'book_product',
+                                mode: 'create_new',
+                                product_id: productId,
+                                quantity: 1
+                            }
+                        ]
+                    }
+                }
+            },
+            { headers: { ...authHeader, 'Content-Type': 'application/json' } }
+        );
+
+        // Step 3: Build the storefront cart URL
+        const storefront = (storeUrl || source as string).replace(/\/$/, '');
+        const cartUrl = `${storefront}/carts/${orderId}`;
+
+        res.json({ cartUrl, orderId });
+    } catch (err: any) {
+        const detail = err.response?.data || err.message;
+        console.error('[createCart] Error:', detail);
+        res.status(500).json({ error: 'Failed to create Booqable cart', detail });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Backend provider listening at http://localhost:${port}`);
 });
