@@ -47,7 +47,14 @@ app.get("/api/v1/availability", async (req, res) => {
         res.json(data);
     } catch (err: any) {
         console.error(`[API Error] ${req.path}:`, err.message);
-        res.status(500).json({ error: err.message });
+        // If we have an upstream API error response (e.g. from axios), parse and return it
+        let detail = err.message;
+        if (err.message.includes("Booqable API Error") && err.message.includes("{")) {
+            // Already stringified JSON in the error message from adapter
+            const jsonPart = err.message.substring(err.message.indexOf("{"));
+            try { detail = JSON.parse(jsonPart); } catch { }
+        }
+        res.status(500).json({ error: detail });
     }
 });
 

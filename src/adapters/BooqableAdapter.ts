@@ -29,7 +29,7 @@ export class BooqableAdapter implements IAdapter {
         const authHeader = { Authorization: `Bearer ${apiKey}` };
 
         try {
-            // 1. Fetch Bundles — these have the correct storefront slugs
+            // 1. Fetch Bundles
             // GET /api/4/bundles returns: id, name, slug, photo_url, show_in_store, etc.
             const bundlesRes = await axios.get(`${baseUrl}/api/4/bundles`, {
                 headers: authHeader,
@@ -44,11 +44,12 @@ export class BooqableAdapter implements IAdapter {
                 return attrs.show_in_store !== false && !attrs.archived;
             });
 
-            // 2. Fetch Plannings for bundles (bookings/reservations)
+            // 2. Fetch Plannings (Bookings/Reservations)
+            // Fetch ALL plannings in the range and filter in-memory.
+            // This avoids 400 errors from strict filters like `item_type` which can be tricky.
             const planningsRes = await axios.get(`${baseUrl}/api/4/plannings`, {
                 headers: authHeader,
                 params: {
-                    "filter[item_type]": "Bundle",
                     "filter[starts_at][lte]": endDate + "T23:59:59Z",
                     "filter[stops_at][gte]": startDate + "T00:00:00Z",
                     "page[size]": 1000
@@ -79,10 +80,13 @@ export class BooqableAdapter implements IAdapter {
                     item.availability[date] = { status: 'available', price: basePrice };
                 });
 
-                // Map plannings for this bundle
+                // Map plannings from the flat list to this bundle
                 const bundlePlannings = rawPlannings.filter((pl: any) => {
                     const plAttrs = pl.attributes || pl;
-                    return String(plAttrs.item_id) === bundleId;
+                    // Plannings have `item_id` in attributes pointing to the bundle/product ID
+                    // Check attributes first, then fallback to relationships standard JSONAPI
+                    const planningItemId = plAttrs.item_id || pl.relationships?.item?.data?.id;
+                    return String(planningItemId) === bundleId;
                 });
 
                 bundlePlannings.forEach((pl: any) => {
@@ -104,7 +108,13 @@ export class BooqableAdapter implements IAdapter {
             return { version: "1.0", dates, items };
 
         } catch (error: any) {
-            console.error(`[BooqableAdapter] Error:`, error.response?.data || error.message);
+            console.error("[BooqableAdapter] API Error:", error.message);
+            // If axios error has response data, include it in the thrown error
+            if (error.response?.data) {
+                const detail = JSON.stringify(error.response.data);
+                console.error("API Error Details:", detail);
+                throw new Error(`Booqable API Error: ${detail}`);
+            }
             throw new Error(`Booqable Integration Error: ${error.message}`);
         }
     }
