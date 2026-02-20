@@ -110,11 +110,21 @@ app.post("/api/v1/createCart", async (req, res) => {
             { headers: { ...authHeader, 'Content-Type': 'application/json' } }
         );
 
-        // Step 3: Build the storefront cart URL
-        const storefront = (storeUrl || source as string).replace(/\/$/, '');
-        const cartUrl = `${storefront}/carts/${orderId}`;
 
-        res.json({ cartUrl, orderId });
+        const storefront = (storeUrl || source as string).replace(/\/$/, '');
+        const cartUrl = `${storefront}/orders/${orderId}`;
+        const orderAttrs = orderRes.data?.data?.attributes || {};
+
+        console.log('[createCart] Order created:', orderId);
+        console.log('[createCart] Cart URL:', cartUrl);
+        console.log('[createCart] Order status:', orderAttrs.status, '| starts_at:', orderAttrs.starts_at);
+
+        res.json({
+            cartUrl,
+            orderId,
+            orderNumber: orderAttrs.number,
+            orderStatus: orderAttrs.status,
+        });
     } catch (err: any) {
         const detail = err.response?.data || err.message;
         console.error('[createCart] Error:', detail);
