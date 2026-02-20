@@ -71,17 +71,22 @@ app.post("/api/v1/createCart", async (req, res) => {
 
         const storefront = (storeUrl || source as string).replace(/\/$/, '');
 
-        // Build the redirect URL with date params that Booqable reads via booqableOptions.cart.
-        // ?from and ?till pre-fill the date picker on the storefront.
+
         const params = new URLSearchParams({
             from: startDate,   // YYYY-MM-DD
             till: endDate,     // YYYY-MM-DD
         });
 
-        // If the product has a slug-based URL (e.g. /products/winnebago-solis-59px), use it.
-        // Otherwise fall back to the storefront homepage with dates pre-filled.
-        const baseTarget = productUrl || storefront;
-        const cartUrl = `${baseTarget.replace(/\/$/, '')}?${params.toString()}`;
+        let baseTarget = storefront;
+        if (productUrl) {
+            try {
+                const productPath = new URL(productUrl).pathname; // /products/airstream-rangeline-...
+                baseTarget = `${storefront}${productPath}`;
+            } catch {
+                baseTarget = productUrl; // fallback if productUrl isn't a valid URL
+            }
+        }
+        const cartUrl = `${baseTarget}?${params.toString()}`;
 
         console.log('[createCart] Redirecting to storefront:', cartUrl);
 
